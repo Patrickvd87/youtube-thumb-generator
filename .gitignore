@@ -32,9 +32,18 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
-# vercel
+# local secrets and uploads
+data/youtube-tokens.json
+public/uploads/*
+!public/uploads/.gitkeep
+
+# vercel / cloudflare
 .vercel
+.open-next
+.wrangler
+.dev.vars
 
 # typescript
 *.tsbuildinfo

@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Thumb Desk
 
-## Getting Started
+Internal editor tool for livestream thumbnails. Generate four options from a streamer photo and prompt, pick one, then set it on a YouTube video.
 
-First, run the development server:
+## Setup
 
 ```bash
+cp .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and sign in with `APP_PASSWORD`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Purpose |
+| --- | --- |
+| `APP_PASSWORD` | Shared editor password |
+| `AUTH_SECRET` | Signs the login cookie and encrypts the stored YouTube token |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id for free Workers AI image generation |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Workers AI access |
+| `CLOUDFLARE_IMAGE_MODEL` | Optional. Default `@cf/black-forest-labs/flux-2-klein-4b` |
+| `IMAGE_PROVIDER` | Optional. `cloudflare` (default when CF creds exist) or `gemini` |
+| `GEMINI_API_KEY` | Paid Gemini image API only — free-tier quota is 0 |
+| `GOOGLE_CLIENT_ID` | OAuth client for YouTube |
+| `GOOGLE_CLIENT_SECRET` | OAuth client secret |
+| `GOOGLE_REDIRECT_URI` | Must match the OAuth client, default `http://localhost:3000/api/youtube/callback` |
+| `YOUTUBE_REFRESH_TOKEN` | Optional. Use this instead of the local token file |
 
-## Learn More
+### Image generation (free)
 
-To learn more about Next.js, take a look at the following resources:
+Gemini’s image models (`gemini-2.5-flash-image` and similar) have **no free API quota** (`limit: 0`). Use Cloudflare Workers AI instead:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Open the [Cloudflare dashboard](https://dash.cloudflare.com/) and copy your Account ID.
+2. Create an API token with **Workers AI** permission.
+3. Put both in `.env.local` as `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`.
+4. Restart `npm run dev`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The app sends the selected streamer photo as `input_image_0` and generates four 1280×720 variants.
 
-## Deploy on Vercel
+To use Gemini after enabling billing, set `GEMINI_API_KEY` and `IMAGE_PROVIDER=gemini`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### YouTube OAuth
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. In Google Cloud, create a project and enable **YouTube Data API v3**.
+2. Create an OAuth 2.0 **Web application** client.
+3. Add the authorized redirect URI: `http://localhost:3000/api/youtube/callback` (and your production URL later).
+4. Copy the client id and secret into `.env.local`.
+5. Sign in to Thumb Desk, click **Connect YouTube**, and approve access with the channel owner account.
+6. The channel must be allowed to set custom thumbnails (usually after YouTube verification).
+
+After connect, paste a video ID or watch/live URL, select a generated thumbnail, and click **Set selected thumbnail**.
+
+## Defaults
+
+- Streamer photos live in `public/streamers/`. Replace the sample portraits with the real streamer.
+- Extra uploads go to `public/uploads/` (gitignored).
+- The starting prompt is `data/default-prompt.txt`. Use **Save as default** in the UI to update it.
+
+## Host on Cloudflare (no domain needed)
+
+Yes. Cloudflare gives every account a free `workers.dev` URL, for example:
+
+`https://thumb-desk.<your-subdomain>.workers.dev`
+
+You do not buy or add a custom domain.
+
+```bash
+npx wrangler login
+cp .dev.vars.example .dev.vars
+# fill APP_PASSWORD, AUTH_SECRET, and YouTube OAuth vars
+npx wrangler secret put APP_PASSWORD
+npx wrangler secret put AUTH_SECRET
+npx wrangler secret put GOOGLE_CLIENT_ID
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+npx wrangler secret put GOOGLE_REDIRECT_URI
+# value: https://thumb-desk.<your-subdomain>.workers.dev/api/youtube/callback
+npm run deploy
+```
+
+Add that same callback URL in the Google OAuth client. After the first local YouTube connect, also:
+
+```bash
+npx wrangler secret put YOUTUBE_REFRESH_TOKEN
+```
+
+Workers AI is bound as `AI` in `wrangler.jsonc`, so the deployed app does not need `CLOUDFLARE_API_TOKEN`.
+
+Notes:
+
+- Use Node 22+ for Wrangler 4 (`npm run deploy`).
+- Commit real streamer photos under `public/streamers/`. Uploads and “save as default” do not persist on Workers.
+- Free Workers CPU is 10 ms per request. Next.js plus four image jobs can exceed that. If generate fails with a CPU/time limit, the $5/month Workers Paid plan lifts it. Vercel Hobby (`*.vercel.app`) is the other free no-domain host; keep Workers AI via REST from there.
+
+## Deploy notes (Vercel)
+
+Local disk writes (uploads, saved prompt, YouTube token file) work on your machine. On Vercel those writes are ephemeral, so:
+
+- Commit real streamer photos under `public/streamers/`
+- Keep the default prompt in git
+- Store `YOUTUBE_REFRESH_TOKEN` in Vercel env after the first local OAuth connect
+- Set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` so image generation still uses Workers AI
+
