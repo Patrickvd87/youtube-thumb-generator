@@ -10,14 +10,15 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with `APP_PASSWORD`.
+Open [http://localhost:3000](http://localhost:3000). Local dev does not require Cloudflare Access.
 
 ### Environment
 
 | Variable | Purpose |
 | --- | --- |
-| `APP_PASSWORD` | Shared editor password |
-| `AUTH_SECRET` | Signs the login cookie and encrypts the stored YouTube token |
+| `TEAM_DOMAIN` | Cloudflare Access team URL, e.g. `https://your-team.cloudflareaccess.com` |
+| `POLICY_AUD` | Access application AUD tag |
+| `AUTH_SECRET` | Encrypts a locally stored YouTube refresh token |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id for free Workers AI image generation |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Workers AI access |
 | `CLOUDFLARE_IMAGE_MODEL` | Optional. Default `@cf/black-forest-labs/flux-2-klein-4b` |
@@ -45,7 +46,9 @@ To use Gemini after enabling billing, set `GEMINI_API_KEY` and `IMAGE_PROVIDER=g
 
 1. In Google Cloud, create a project and enable **YouTube Data API v3**.
 2. Create an OAuth 2.0 **Web application** client.
-3. Add the authorized redirect URI: `http://localhost:3000/api/youtube/callback` (and your production URL later).
+3. Add authorized redirect URIs:
+   - `http://localhost:3000/api/youtube/callback`
+   - `https://youtube-thumb-generator.patrickvd87.workers.dev/api/youtube/callback`
 4. Copy the client id and secret into `.env.local`.
 5. Sign in to Thumb Desk, click **Connect YouTube**, and approve access with the channel owner account.
 6. The channel must be allowed to set custom thumbnails (usually after YouTube verification).
@@ -60,26 +63,32 @@ After connect, paste a video ID or watch/live URL, select a generated thumbnail,
 
 ## Host on Cloudflare (no domain needed)
 
-Yes. Cloudflare gives every account a free `workers.dev` URL, for example:
+Live URL (no custom domain):
 
-`https://thumb-desk.<your-subdomain>.workers.dev`
+[https://youtube-thumb-generator.patrickvd87.workers.dev](https://youtube-thumb-generator.patrickvd87.workers.dev)
 
-You do not buy or add a custom domain.
+Protect the live URL with [one-click Access](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/):
+
+1. Worker → **Settings** → **Domains & Routes**
+2. On the `workers.dev` route, click **Enable Cloudflare Access**
+3. **Manage Cloudflare Access** and allow your email
+4. Copy the application **AUD** tag
+5. Add runtime variables (plain text is fine):
+   - `TEAM_DOMAIN` = `https://<your-team>.cloudflareaccess.com`
+   - `POLICY_AUD` = the AUD tag
+6. Click **Deploy**
+
+Login is Cloudflare’s email / one-time PIN screen. There is no app password.
 
 ```bash
 npx wrangler login
-cp .dev.vars.example .dev.vars
-# fill APP_PASSWORD, AUTH_SECRET, and YouTube OAuth vars
-npx wrangler secret put APP_PASSWORD
-npx wrangler secret put AUTH_SECRET
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put GOOGLE_REDIRECT_URI
-# value: https://thumb-desk.<your-subdomain>.workers.dev/api/youtube/callback
-npm run deploy
+# value: https://youtube-thumb-generator.patrickvd87.workers.dev/api/youtube/callback
 ```
 
-Add that same callback URL in the Google OAuth client. After the first local YouTube connect, also:
+Add that same callback URL in the Google OAuth client. After the first YouTube connect, also:
 
 ```bash
 npx wrangler secret put YOUTUBE_REFRESH_TOKEN

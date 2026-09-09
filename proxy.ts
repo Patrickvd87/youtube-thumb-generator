@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionValue } from "@/lib/auth";
+import { isAccessAuthenticated } from "@/lib/access";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/youtube/callback"];
+const PUBLIC_PATHS = ["/api/youtube/callback"];
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
     return NextResponse.next();
   }
 
-  const session = request.cookies.get(SESSION_COOKIE)?.value;
-  if (verifySessionValue(session)) {
+  if (await isAccessAuthenticated(request)) {
     return NextResponse.next();
   }
 
@@ -20,7 +19,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.redirect(new URL("/login", request.url));
+  return new NextResponse("Cloudflare Access required. Enable Access on this Worker and set TEAM_DOMAIN plus POLICY_AUD.", {
+    status: 403,
+  });
 }
 
 export const config = {

@@ -1,5 +1,6 @@
 NEXTJS_ENV=development
-APP_PASSWORD=change-me
+TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+POLICY_AUD=
 AUTH_SECRET=generate-a-long-random-string
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=

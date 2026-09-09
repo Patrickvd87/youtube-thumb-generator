@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Photo } from "@/lib/photos";
 import type { GeneratedImage } from "@/lib/generate";
 
@@ -20,7 +19,6 @@ export function Workspace({
   initialError,
   youtubeJustConnected,
 }: WorkspaceProps) {
-  const router = useRouter();
   const [photos, setPhotos] = useState(initialPhotos);
   const [photoId, setPhotoId] = useState(initialPhotos[0]?.id ?? "");
   const [prompt, setPrompt] = useState(defaultPrompt);
@@ -44,12 +42,6 @@ export function Workspace({
   function show(text: string, tone: "error" | "ok" = "error") {
     setMessage(text);
     setMessageTone(tone);
-  }
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
-    router.refresh();
   }
 
   async function onUpload(file: File | undefined) {
@@ -171,13 +163,12 @@ export function Workspace({
               Connect YouTube
             </a>
           )}
-          <button
-            type="button"
-            onClick={logout}
+          <a
+            href="/api/auth/logout"
             className="rounded-md border border-border px-3 py-1.5 text-muted hover:text-foreground"
           >
             Log out
-          </button>
+          </a>
         </div>
       </header>
 
