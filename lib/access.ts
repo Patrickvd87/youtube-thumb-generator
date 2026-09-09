@@ -30,16 +30,17 @@ export function accessLogoutUrl(): string | null {
 
 export async function verifyAccessToken(token: string | undefined): Promise<boolean> {
   const domain = teamDomain();
-  const aud = audience();
-  if (!domain || !aud || !token) {
+  if (!domain || !token) {
     return false;
   }
 
   try {
-    await jwtVerify(token, jwksFor(domain), {
-      issuer: domain,
-      audience: aud,
-    });
+    const options: { issuer: string; audience?: string } = { issuer: domain };
+    const aud = audience();
+    if (aud) {
+      options.audience = aud;
+    }
+    await jwtVerify(token, jwksFor(domain), options);
     return true;
   } catch {
     return false;

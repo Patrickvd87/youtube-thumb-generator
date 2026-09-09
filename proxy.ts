@@ -19,9 +19,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return new NextResponse("Cloudflare Access required. Enable Access on this Worker and set TEAM_DOMAIN plus POLICY_AUD.", {
-    status: 403,
-  });
+  return new NextResponse(
+    "Cloudflare Access required. Enable Access on this Worker and set TEAM_DOMAIN.",
+    { status: 403 },
+  );
 }
 
 export const config = {

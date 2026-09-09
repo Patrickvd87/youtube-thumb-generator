@@ -5,6 +5,9 @@
   "compatibility_date": "2026-09-09",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": true,
+  "vars": {
+    "TEAM_DOMAIN": "https://patrickvd87.cloudflareaccess.com"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

@@ -72,11 +72,8 @@ Protect the live URL with [one-click Access](https://developers.cloudflare.com/w
 1. Worker → **Settings** → **Domains & Routes**
 2. On the `workers.dev` route, click **Enable Cloudflare Access**
 3. **Manage Cloudflare Access** and allow your email
-4. Copy the application **AUD** tag
-5. Add runtime variables (plain text is fine):
-   - `TEAM_DOMAIN` = `https://<your-team>.cloudflareaccess.com`
-   - `POLICY_AUD` = the AUD tag
-6. Click **Deploy**
+4. Optional: copy the application **AUD** tag into `POLICY_AUD`
+5. `TEAM_DOMAIN` is already set to `https://patrickvd87.cloudflareaccess.com`
 
 Login is Cloudflare’s email / one-time PIN screen. There is no app password.
 
